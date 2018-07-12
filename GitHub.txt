@@ -1,0 +1,648 @@
+//2017 Innovate FPGA : PR039 Hardware friendly memristive neural network with weight sharing mechenism
+`timescale 100ns/100ns
+module all_test(clk,rst,w_update,
+                n_black,n_white,
+                z0,v0,n0,x0,c0,
+                n_z,n_v,n_n,n_x,n_c,
+	        time_fire_z,time_fire_v,time_fire_n,time_fire_x,time_fire_c);
+						
+input clk,rst;
+      //?tb??
+
+input w_update;
+      //??????????tb??
+
+input z0,v0,n0,x0,c0;
+      //????????????tb??
+
+input n_black,n_white;
+      //???????????????????n2?n3???????????tb??
+
+input [80:0]n_z,n_v,n_n,n_x,n_c;
+		
+/*input [4:0]dw_black_z,dw_black_v,dw_black_n,dw_black_x,dw_black_c,
+           dw_white_z,dw_white_v,dw_white_n,dw_white_x,dw_white_c;*/
+			  //dw?????????????5*2???n_black?n_white???????memristor_time??
+//output [9:0]dw_black_z,dw_white_z,dw_black_v,dw_white_v,dw_black_n,dw_white_n,dw_black_x,dw_white_x,dw_black_c,dw_white_c,wv00,wv01,wv02,wv03,wv04,wv13,wv22,wv31,wv40,wv49,wv58,wv67,wv76,wv77,wv78,wv79,wv80;	
+//output [6:0]t0;
+//output [10:0]y;
+
+
+output time_fire_z,time_fire_v,time_fire_n,time_fire_x,time_fire_c;
+		 //?????????????????????????memristor_time
+				
+wire z0,v0,n0,x0,c0;
+
+wire n_black,n_white;
+	  
+wire [80:0]n_z,n_v,n_n,n_x,n_c;
+
+
+//reg [10:0]y;
+
+reg [9:0]dw_black_z,dw_black_v,dw_black_n,dw_black_x,dw_black_c,
+         dw_white_z,dw_white_v,dw_white_n,dw_white_x,dw_white_c;
+
+reg  time_fire_z,time_fire_v,time_fire_n,time_fire_x,time_fire_c;
+			 
+reg  [6:0]t0,t1,t2,t3,t4;
+          //???????
+
+reg  [5:0]state0,state1,state2,state3,state4;
+          //?????????????????
+			 
+reg [9:0]t,count;
+
+reg [5:0]state;
+			 
+reg  [9:0]wz_black,wz_white,
+
+          wv_black,wv_white,
+
+          wn_black,wn_white,
+
+          wx_black,wx_white,
+
+          wc_black,wc_white;
+
+			 
+parameter k1=180,k2=4,Is=1;
+parameter VT=2000;
+parameter N01=6'b000000,N02=6'b000001,N03=6'b000010,N04=6'b000011,N05=6'b000100,N06=6'b000101,N07=6'b000110,N08=6'b000111,
+			 N09=6'b001000,N10=6'b001001,N11=6'b001010,N12=6'b001011,N13=6'b001100,N14=6'b001101,N15=6'b001110,N16=6'b001111,
+			 N17=6'b010000,N18=6'b010001,N19=6'b010010,N20=6'b010011,N21=6'b010100,N22=6'b010101,N23=6'b010110,N24=6'b010111,
+			 N25=6'b011000,N26=6'b011001,N27=6'b011010,N28=6'b011011,N29=6'b011100,N30=6'b011101,N31=6'b011110,N32=6'b011111,
+			 N33=6'b100000,N34=6'b100001,N35=6'b100010,N36=6'b100011,N37=6'b100100,N38=6'b100101,N39=6'b100110,N40=6'b100111,
+			 N41=6'b101000,N42=6'b101001,N43=6'b101010,N44=6'b101011,N45=6'b101100,N46=6'b101101,N47=6'b101110,N48=6'b101111,
+			 N49=6'b110000,N50=6'b110001,N51=6'b110010,N52=6'b110011,N53=6'b110100,N54=6'b110101,N55=6'b110110,N56=6'b110111,
+			 N57=6'b111000,N58=6'b111001,N59=6'b111010,N60=6'b111011,N61=6'b111100,N62=6'b111101,N63=6'b111110,N64=6'b111111;
+			
+			 
+initial//???
+begin
+
+t=0;count=0;
+dw_black_z=0;dw_black_v=0;dw_black_n=0;dw_black_x=0;dw_black_c=0;
+dw_white_z=0;dw_white_v=0;dw_white_n=0;dw_white_x=0;dw_white_c=0;
+
+t0<=0;t1<=0;t2<=0;t3<=0;t4<=0;
+
+time_fire_z<=0;time_fire_v<=0;time_fire_n<=0;time_fire_x<=0;time_fire_c<=0;
+
+wz_black<=5;wz_white<=5;
+
+wv_black<=5;wv_white<=5;
+
+wn_black<=5;wn_white<=5;
+
+wx_black<=5;wx_white<=5;
+
+wc_black<=5;wc_white<=5;
+
+end
+
+//always@(posedge clk)
+//begin 
+//y=n_v[0]*wz00+n_v[8]*wz08+n_v[9]*wz09+n_v[17]*wz17+n_v[18]*wz18+n_v[26]*wz26+n_v[27]*wz27+n_v[35]*wz35+n_v[36]*wz36+n_v[44]*wz44+n_v[46]*wz46+n_v[52]*wz52+n_v[56]*wz56+n_v[60]*wz60+n_v[66]*wz66+n_v[68]*wz68+n_v[76]*wz76;
+//end
+
+always@(posedge clk)//????????
+
+begin
+
+if(rst&&w_update)//?rst?w_update??????????????????????????????????????????dw????
+  begin
+
+wz_black<=wz_black+dw_black_z;wz_white<=wz_white+dw_white_z;
+
+wv_black<=wv_black+dw_black_v;wv_white<=wv_white+dw_white_v;
+
+wn_black<=wn_black+dw_black_n;wn_white<=wn_white+dw_white_n;
+
+wx_black<=wx_black+dw_black_x;wx_white<=wx_white+dw_white_x;
+
+wc_black<=wc_black+dw_black_c;wc_white<=wc_white+dw_white_c;
+  end
+
+else;
+  
+end
+
+always@(posedge clk)//??z?????
+
+begin
+
+if(rst==0)
+  state0<=N01;
+else if(z0)
+  begin state0<=N02;t0<=0;end
+else if(v0)
+  begin state0<=N05;t0<=0;end
+else if(n0)
+  begin state0<=N08;t0<=0;end
+else if(x0)
+  begin state0<=N11;t0<=0;end
+else if(c0)
+  begin state0<=N14;t0<=0;end
+else state0<=N01;
+
+case(state0)
+
+  N01:if(z0) begin state0<=N02;t0<=0;end
+      else state0<=N01;
+        
+  N02:if((n_z[0]+n_z[1]+n_z[2]+n_z[3]+n_z[4]+n_z[13]+n_z[22]+n_z[31]+n_z[40]
+          +n_z[49]+n_z[58]+n_z[67]+n_z[76]+n_z[77]+n_z[78]+n_z[79]+n_z[80])*wz_black*t0>VT) begin state0<=N03;end
+      else begin t0<=t0+1;state0<=N02;end
+        
+  N03:begin time_fire_z=1;state0<=N04;end
+  
+  
+  N04:begin time_fire_z=0;state0<=N05;end
+  
+  
+  N05:if(v0) begin state0<=N06;t0<=0;end
+      else state0<=N05;
+	
+  N06:if((n_v[0]+n_v[8]+n_v[9]+n_v[17]+n_v[18]+n_v[26]+n_v[27]+n_v[35]+n_v[36]
+          +n_v[44]+n_v[46]+n_v[52]+n_v[56]+n_v[60]+n_v[66]+n_v[68]+n_v[76])*wz_white*t0>VT) begin state0<=N07;end
+      else begin t0<=t0+1;state0<=N06;end
+        
+  N07:begin time_fire_z=1;state0<=N08;end
+  
+  
+  N08:begin time_fire_z=0;state0<=N09;end
+  
+  
+  N09:if(n0) begin state0<=N10;t0<=0;end
+      else state0<=N09;
+	
+  N10:if((n_n[4]+n_n[12]+n_n[14]+n_n[20]+n_n[24]+n_n[28]+n_n[34]+n_n[36]+n_n[44]
+          +n_n[45]+n_n[53]+n_n[54]+n_n[62]+n_n[63]+n_n[71]+n_n[72]+n_n[80])*wz_white*t0>VT) begin state0<=N11;end
+      else begin t0<=t0+1;state0<=N10;end
+        
+  N11:begin time_fire_z=1;state0<=N12;end
+  
+  
+  N12:begin time_fire_z=0;state0<=N13;end
+  
+ 
+  N13:if(x0) begin state0<=N14;t0<=0;end
+      else state0<=N13;
+	
+  N14:if((n_x[0]+n_x[8]+n_x[10]+n_x[16]+n_x[20]+n_x[24]+n_x[30]+n_x[32]+n_x[40]
+          +n_x[48]+n_x[50]+n_x[56]+n_x[60]+n_x[64]+n_x[70]+n_x[72]+n_x[80])*wz_white*t0>VT) begin state0<=N15;end
+      else begin t0<=t0+1;state0<=N14;end
+        
+  N15:begin time_fire_z=1;state0<=N16;end
+  
+  
+  N16:begin time_fire_z=0;state0<=N17;end
+  
+    
+  N17:if(c0) begin state0<=N18;t0<=0;end
+      else state0<=N17;
+	
+  N18:if((n_c[4]+n_c[5]+n_c[6]+n_c[7]+n_c[8]+n_c[12]+n_c[20]+n_c[28]+n_c[36]
+          +n_c[46]+n_c[56]+n_c[66]+n_c[76]+n_c[77]+n_c[78]+n_c[79]+n_c[80])*wz_white*t0>VT) begin state0<=N19;end
+      else begin t0<=t0+1;state0<=N18;end
+        
+  N19:begin time_fire_z=1;state0<=N20;end
+  
+  
+  N20:begin time_fire_z=0;end
+		
+		
+  default:state0<=N01;
+  
+endcase
+
+end
+
+always@(posedge clk)//??v?????
+
+begin
+
+if(rst==0)
+  state1<=N01;
+else if(z0)
+  begin state1<=N02;t1<=0;end
+else if(v0)
+  begin state1<=N05;t1<=0;end
+else if(n0)
+  begin state1<=N08;t1<=0;end
+else if(x0)
+  begin state1<=N11;t1<=0;end
+else if(c0)
+  begin state1<=N14;t1<=0;end
+else state1<=N01;
+
+case(state1)
+
+  N01:if(z0) begin state1<=N02;t1<=0;end
+      else state1<=N01;
+        
+  N02:if((n_z[0]+n_z[1]+n_z[2]+n_z[3]+n_z[4]+n_z[13]+n_z[22]+n_z[31]+n_z[40]
+          +n_z[49]+n_z[58]+n_z[67]+n_z[76]+n_z[77]+n_z[78]+n_z[79]+n_z[80])*wv_white*t1>VT) begin state1<=N03;end
+      else begin t1<=t1+1;state1<=N02;end
+        
+  N03:begin time_fire_v=1;state1<=N04;end
+  
+  
+  N04:begin time_fire_v=0;state1<=N05;end
+  
+  
+  N05:if(v0) begin state1<=N06;t1<=0;end
+      else state1<=N05;
+	
+  N06:if((n_v[0]+n_v[8]+n_v[9]+n_v[17]+n_v[18]+n_v[26]+n_v[27]+n_v[35]+n_v[36]
+          +n_v[44]+n_v[46]+n_v[52]+n_v[56]+n_v[60]+n_v[66]+n_v[68]+n_v[76])*wv_black*t1>VT) begin state1<=N07;end
+      else begin t1<=t1+1;state1<=N06;end
+        
+  N07:begin time_fire_v=1;state1<=N08;end
+  
+  
+  N08:begin time_fire_v=0;state1<=N09;end
+  
+  
+  N09:if(n0) begin state1<=N10;t1<=0;end
+      else state1<=N09;
+	
+  N10:if((n_n[4]+n_n[12]+n_n[14]+n_n[20]+n_n[24]+n_n[28]+n_n[34]+n_n[36]+n_n[44]
+          +n_n[45]+n_n[53]+n_n[54]+n_n[62]+n_n[63]+n_n[71]+n_n[72]+n_n[80])*wv_white*t1>VT) begin state1<=N11;end
+      else begin t1<=t1+1;state1<=N10;end
+        
+  N11:begin time_fire_v=1;state1<=N12;end
+  
+  
+  N12:begin time_fire_v=0;state1<=N13;end
+  
+ 
+  N13:if(x0) begin state1<=N14;t1<=0;end
+      else state1<=N13;
+	
+  N14:if((n_x[0]+n_x[8]+n_x[10]+n_x[16]+n_x[20]+n_x[24]+n_x[30]+n_x[32]+n_x[40]
+          +n_x[48]+n_x[50]+n_x[56]+n_x[60]+n_x[64]+n_x[70]+n_x[72]+n_x[80])*wv_white*t1>VT) begin state1<=N15;end
+      else begin t1<=t1+1;state1<=N14;end
+        
+  N15:begin time_fire_v=1;state1<=N16;end
+  
+  
+  N16:begin time_fire_v=0;state1<=N17;end
+  
+    
+  N17:if(c0) begin state1<=N18;t1<=0;end
+      else state1<=N17;
+	
+  N18:if((n_c[4]+n_c[5]+n_c[6]+n_c[7]+n_c[8]+n_c[12]+n_c[20]+n_c[28]+n_c[36]
+          +n_c[46]+n_c[56]+n_c[66]+n_c[76]+n_c[77]+n_c[78]+n_c[79]+n_c[80])*wv_white*t1>VT) begin state1<=N19;end
+      else begin t1<=t1+1;state1<=N18;end
+        
+  N19:begin time_fire_v=1;state1<=N20;end
+  
+  
+  N20:begin time_fire_v=0;end
+		
+		
+  default:state1<=N01;
+  
+endcase
+
+end
+
+always@(posedge clk)//??n?????
+
+begin
+
+if(rst==0)
+  state2<=N01;
+else if(z0)
+  begin state2<=N02;t2<=0;end
+else if(v0)
+  begin state2<=N05;t2<=0;end
+else if(n0)
+  begin state2<=N08;t2<=0;end
+else if(x0)
+  begin state2<=N11;t2<=0;end
+else if(c0)
+  begin state2<=N14;t2<=0;end
+else state2<=N01;
+
+case(state2)
+
+  N01:if(z0) begin state2<=N02;t2<=0;end
+      else state2<=N01;
+        
+  N02:if((n_z[0]+n_z[1]+n_z[2]+n_z[3]+n_z[4]+n_z[13]+n_z[22]+n_z[31]+n_z[40]
+          +n_z[49]+n_z[58]+n_z[67]+n_z[76]+n_z[77]+n_z[78]+n_z[79]+n_z[80])*wn_white*t2>VT) begin state2<=N03;end
+      else begin t2<=t2+1;state2<=N02;end
+        
+  N03:begin time_fire_n=1;state2<=N04;end
+  
+  
+  N04:begin time_fire_n=0;state2<=N05;end
+  
+  
+  N05:if(v0) begin state2<=N06;t2<=0;end
+      else state2<=N05;
+	
+  N06:if((n_v[0]+n_v[8]+n_v[9]+n_v[17]+n_v[18]+n_v[26]+n_v[27]+n_v[35]+n_v[36]
+          +n_v[44]+n_v[46]+n_v[52]+n_v[56]+n_v[60]+n_v[66]+n_v[68]+n_v[76])*wn_white*t2>VT) begin state2<=N07;end
+      else begin t2<=t2+1;state2<=N06;end
+        
+  N07:begin time_fire_n=1;state2<=N08;end
+  
+  
+  N08:begin time_fire_n=0;state2<=N09;end
+  
+  
+  N09:if(n0) begin state2<=N10;t2<=0;end
+      else state2<=N09;
+	
+  N10:if((n_n[4]+n_n[12]+n_n[14]+n_n[20]+n_n[24]+n_n[28]+n_n[34]+n_n[36]+n_n[44]
+          +n_n[45]+n_n[53]+n_n[54]+n_n[62]+n_n[63]+n_n[71]+n_n[72]+n_n[80])*wn_black*t2>VT) begin state2<=N11;end
+      else begin t2<=t2+1;state2<=N10;end
+        
+  N11:begin time_fire_n=1;state2<=N12;end
+  
+  
+  N12:begin time_fire_n=0;state2<=N13;end
+  
+ 
+  N13:if(x0) begin state2<=N14;t2<=0;end
+      else state2<=N13;
+	
+  N14:if((n_x[0]+n_x[8]+n_x[10]+n_x[16]+n_x[20]+n_x[24]+n_x[30]+n_x[32]+n_x[40]
+          +n_x[48]+n_x[50]+n_x[56]+n_x[60]+n_x[64]+n_x[70]+n_x[72]+n_x[80])*wn_white*t2>VT) begin state2<=N15;end
+      else begin t2<=t2+1;state2<=N14;end
+        
+  N15:begin time_fire_n=1;state2<=N16;end
+  
+  
+  N16:begin time_fire_n=0;state2<=N17;end
+  
+    
+  N17:if(c0) begin state2<=N18;t2<=0;end
+      else state2<=N17;
+	
+  N18:if((n_c[4]+n_c[5]+n_c[6]+n_c[7]+n_c[8]+n_c[12]+n_c[20]+n_c[28]+n_c[36]
+          +n_c[46]+n_c[56]+n_c[66]+n_c[76]+n_c[77]+n_c[78]+n_c[79]+n_c[80])*wn_white*t2>VT) begin state2<=N19;end
+      else begin t2<=t2+1;state2<=N18;end
+        
+  N19:begin time_fire_n=1;state2<=N20;end
+  
+  
+  N20:begin time_fire_n=0;end
+		
+		
+  default:state2<=N01;
+  
+endcase
+
+end
+
+always@(posedge clk)//??x?????
+
+begin
+
+if(rst==0)
+  state3<=N01;
+else if(z0)
+  begin state3<=N02;t3<=0;end
+else if(v0)
+  begin state3<=N05;t3<=0;end
+else if(n0)
+  begin state3<=N08;t3<=0;end
+else if(x0)
+  begin state3<=N11;t3<=0;end
+else if(c0)
+  begin state3<=N14;t3<=0;end
+else state3<=N01;
+
+case(state3)
+
+  N01:if(z0) begin state3<=N02;t3<=0;end
+      else state3<=N01;
+        
+  N02:if((n_z[0]+n_z[1]+n_z[2]+n_z[3]+n_z[4]+n_z[13]+n_z[22]+n_z[31]+n_z[40]
+          +n_z[49]+n_z[58]+n_z[67]+n_z[76]+n_z[77]+n_z[78]+n_z[79]+n_z[80])*wx_white*t3>VT) begin state3<=N03;end
+      else begin t3<=t3+1;state3<=N02;end
+        
+  N03:begin time_fire_x=1;state3<=N04;end
+  
+  
+  N04:begin time_fire_x=0;state3<=N05;end
+  
+  
+  N05:if(v0) begin state3<=N06;t3<=0;end
+      else state3<=N05;
+	
+  N06:if((n_v[0]+n_v[8]+n_v[9]+n_v[17]+n_v[18]+n_v[26]+n_v[27]+n_v[35]+n_v[36]
+          +n_v[44]+n_v[46]+n_v[52]+n_v[56]+n_v[60]+n_v[66]+n_v[68]+n_v[76])*wx_white*t3>VT) begin state3<=N07;end
+      else begin t3<=t3+1;state3<=N06;end
+        
+  N07:begin time_fire_x=1;state3<=N08;end
+  
+  
+  N08:begin time_fire_x=0;state3<=N09;end
+  
+  
+  N09:if(n0) begin state3<=N10;t3<=0;end
+      else state3<=N09;
+	
+  N10:if((n_n[4]+n_n[12]+n_n[14]+n_n[20]+n_n[24]+n_n[28]+n_n[34]+n_n[36]+n_n[44]
+          +n_n[45]+n_n[53]+n_n[54]+n_n[62]+n_n[63]+n_n[71]+n_n[72]+n_n[80])*wx_white*t3>VT) begin state3<=N11;end
+      else begin t3<=t3+1;state3<=N10;end
+        
+  N11:begin time_fire_x=1;state3<=N12;end
+  
+  
+  N12:begin time_fire_x=0;state3<=N13;end
+  
+ 
+  N13:if(x0) begin state3<=N14;t3<=0;end
+      else state3<=N13;
+	
+  N14:if((n_x[0]+n_x[8]+n_x[10]+n_x[16]+n_x[20]+n_x[24]+n_x[30]+n_x[32]+n_x[40]
+          +n_x[48]+n_x[50]+n_x[56]+n_x[60]+n_x[64]+n_x[70]+n_x[72]+n_x[80])*wx_black*t3>VT) begin state3<=N15;end
+      else begin t3<=t3+1;state3<=N14;end
+        
+  N15:begin time_fire_x=1;state3<=N16;end
+  
+  
+  N16:begin time_fire_x=0;state3<=N17;end
+  
+    
+  N17:if(c0) begin state3<=N18;t3<=0;end
+      else state3<=N17;
+	
+  N18:if((n_c[4]+n_c[5]+n_c[6]+n_c[7]+n_c[8]+n_c[12]+n_c[20]+n_c[28]+n_c[36]
+          +n_c[46]+n_c[56]+n_c[66]+n_c[76]+n_c[77]+n_c[78]+n_c[79]+n_c[80])*wx_white*t3>VT) begin state3<=N19;end
+      else begin t3<=t3+1;state3<=N18;end
+        
+  N19:begin time_fire_x=1;state3<=N20;end
+  
+  
+  N20:begin time_fire_x=0;end
+		
+		
+  default:state3<=N01;
+  
+endcase
+
+end
+
+always@(posedge clk)//??c?????
+
+begin
+
+if(rst==0)
+  state4<=N01;
+else if(z0)
+  begin state4<=N02;t4<=0;end
+else if(v0)
+  begin state4<=N05;t4<=0;end
+else if(n0)
+  begin state4<=N08;t4<=0;end
+else if(x0)
+  begin state4<=N11;t4<=0;end
+else if(c0)
+  begin state4<=N14;t4<=0;end
+else state4<=N01;
+
+case(state4)
+
+  N01:if(z0) begin state4<=N02;t4<=0;end
+      else state4<=N01;
+        
+  N02:if((n_z[0]+n_z[1]+n_z[2]+n_z[3]+n_z[4]+n_z[13]+n_z[22]+n_z[31]+n_z[40]
+          +n_z[49]+n_z[58]+n_z[67]+n_z[76]+n_z[77]+n_z[78]+n_z[79]+n_z[80])*wc_white*t4>VT) begin state4<=N03;end
+      else begin t4<=t4+1;state4<=N02;end
+        
+  N03:begin time_fire_c=1;state4<=N04;end
+  
+  
+  N04:begin time_fire_c=0;state4<=N05;end
+  
+  
+  N05:if(v0) begin state4<=N06;t4<=0;end
+      else state4<=N05;
+	
+  N06:if((n_v[0]+n_v[8]+n_v[9]+n_v[17]+n_v[18]+n_v[26]+n_v[27]+n_v[35]+n_v[36]
+          +n_v[44]+n_v[46]+n_v[52]+n_v[56]+n_v[60]+n_v[66]+n_v[68]+n_v[76])*wc_white*t4>VT) begin state4<=N07;end
+      else begin t4<=t4+1;state4<=N06;end
+        
+  N07:begin time_fire_c=1;state4<=N08;end
+  
+  
+  N08:begin time_fire_c=0;state4<=N09;end
+  
+  
+  N09:if(n0) begin state4<=N10;t4<=0;end
+      else state4<=N09;
+	
+  N10:if((n_n[4]+n_n[12]+n_n[14]+n_n[20]+n_n[24]+n_n[28]+n_n[34]+n_n[36]+n_n[44]
+          +n_n[45]+n_n[53]+n_n[54]+n_n[62]+n_n[63]+n_n[71]+n_n[72]+n_n[80])*wc_white*t4>VT) begin state4<=N11;end
+      else begin t4<=t4+1;state4<=N10;end
+        
+  N11:begin time_fire_c=1;state4<=N12;end
+  
+  
+  N12:begin time_fire_c=0;state4<=N13;end
+  
+ 
+  N13:if(x0) begin state4<=N14;t4<=0;end
+      else state4<=N13;
+	
+  N14:if((n_x[0]+n_x[8]+n_x[10]+n_x[16]+n_x[20]+n_x[24]+n_x[30]+n_x[32]+n_x[40]
+          +n_x[48]+n_x[50]+n_x[56]+n_x[60]+n_x[64]+n_x[70]+n_x[72]+n_x[80])*wc_white*t4>VT) begin state4<=N15;end
+      else begin t4<=t4+1;state4<=N14;end
+        
+  N15:begin time_fire_c=1;state4<=N16;end
+  
+  
+  N16:begin time_fire_c=0;state4<=N17;end
+  
+    
+  N17:if(c0) begin state4<=N18;t4<=0;end
+      else state4<=N17;
+	
+  N18:if((n_c[4]+n_c[5]+n_c[6]+n_c[7]+n_c[8]+n_c[12]+n_c[20]+n_c[28]+n_c[36]
+          +n_c[46]+n_c[56]+n_c[66]+n_c[76]+n_c[77]+n_c[78]+n_c[79]+n_c[80])*wc_black*t4>VT) begin state4<=N19;end
+      else begin t4<=t4+1;state4<=N18;end
+        
+  N19:begin time_fire_c=1;state4<=N20;end
+  
+  
+  N20:begin time_fire_c=0;end
+		
+		
+  default:state4<=N01;
+  
+endcase
+
+end
+
+always@(posedge clk or posedge rst or negedge Is-n_black or negedge Is-n_white
+     or negedge Is-time_fire_z or negedge Is-time_fire_v or negedge Is-time_fire_n or negedge Is-time_fire_x or negedge Is-time_fire_c
+	  or negedge Is-z0 or negedge Is-v0 or negedge Is-n0 or negedge Is-x0 or negedge Is-c0)
+//??????
+begin
+
+if(rst)
+  state<=N01;
+else;
+
+case(state)
+  N01:if(Is-n_black==0) begin state<=N02;count<=0;end
+      else state<=N01;
+        
+  N02:if(Is-time_fire_z==0) begin state<=N03;dw_black_z<=k1-k2*t;count<=0;end
+      else begin count<=count+1;t<=count;state<=N02;end
+        
+  N03:if(Is-n_white==0) begin state<=N04;dw_white_z<=-(k1-k2*t);count<=0;end
+		else begin count<=count+1;t<=count+1;state<=N03;end
+	
+  N04:if(Is-n_black==0) begin state<=N05;count<=0;end
+      else state<=N04;
+        
+  N05:if(Is-time_fire_v==0) begin state<=N06;dw_black_v<=k1-k2*t;count<=0;end
+		else begin count<=count+1;t<=count;state<=N05;end
+		
+  N06:if(Is-n_white==0) begin state<=N07;dw_white_v<=-(k1-k2*t);count<=0;end
+		else begin count<=count+1;t<=count;state<=N06;end
+		  
+  N07:if(Is-n_black==0) begin state<=N08;count<=0;end
+      else state<=N07;
+
+  N08:if(Is-time_fire_n==0) begin state<=N09;dw_black_n<=k1-k2*t;count<=0;end
+		else begin count<=count+1;t<=count;state<=N08;end
+		
+  N09:if(Is-n_white==0) begin state<=N10;dw_white_n<=-(k1-k2*t);count<=0;end
+		else begin count<=count+1;t<=count;state<=N09;end
+		
+  N10:if(Is-n_black==0) begin state<=N11;count<=0;end
+      else state<=N10;
+
+  N11:if(Is-time_fire_x==0) begin state<=N12;dw_black_x<=k1-k2*t;count<=0;end
+		else begin count<=count+1;t<=count;state<=N11;end
+		
+  N12:if(Is-n_white==0) begin state<=N13;dw_white_x<=-(k1-k2*t);count<=0;end
+		else begin count<=count+1;t<=count;state<=N12;end
+		
+  N13:if(Is-n_black==0) begin state<=N14;count<=0;end
+      else state<=N13;
+
+  N14:if(Is-time_fire_c==0) begin state<=N15;dw_black_c<=k1-k2*t;count<=0;end
+		else begin count<=count+1;t<=count;state<=N14;end
+		
+  N15:if(Is-n_white==0) begin dw_white_c<=-(k1-k2*t);count<=0;end
+		else begin count<=count+1;t<=count;state<=N15;end
+		
+default:state<=N01;	
+
+endcase
+
+end
+
+endmodule
